@@ -15,17 +15,20 @@ if (
     isset($_POST['id']) && 
     isset($_POST['user_id']) && 
     isset($_POST['datetime_in']) && 
-    isset($_POST['attendance_status']) && 
-    isset($_POST['attendance_type']) // Include attendance_type
+    isset($_POST['attendance_status']) &&
+    isset($_POST['is_late_in']) &&
+    isset($_POST['is_late_out'])
 ) {
     $id = $_POST['id'];
     $user_id = filter_var($_POST['user_id'], FILTER_SANITIZE_NUMBER_INT); // Sanitize user_id
     $datetime_in = $_POST['datetime_in'];
     $datetime_out = $_POST['datetime_out'];
     $attendance_status = $_POST['attendance_status'];
-    $attendance_type = $_POST['attendance_type']; // Include attendance_type
     $is_late_in = $_POST['is_late_in'];
     $is_late_out = $_POST['is_late_out'];
+
+    // Log data received
+    error_log("Received data: id=$id, user_id=$user_id, datetime_in=$datetime_in, datetime_out=$datetime_out, attendance_status=$attendance_status, is_late_in=$is_late_in, is_late_out=$is_late_out");
 
     try {
         // Determine check_type based on whether datetime_out is provided AND it's different from datetime_in
@@ -34,12 +37,12 @@ if (
         // Prepare and execute the update statement using prepared statements
         $sql = "UPDATE attendance_records 
                 SET user_id = :user_id, 
-                    datetime = :datetime_in, 
+                    datetime_in = :datetime_in, 
                     datetime_out = :datetime_out,
                     attendance_status = :attendance_status, 
                     check_type = :check_type,
-                    attendance_type = :attendance_type, // Include attendance_type
-                    is_late = :is_late_in 
+                    is_late_in = :is_late_in,
+                    is_late_out = :is_late_out
                 WHERE id = :id";
 
         $stmt = $pdo->prepare($sql);
@@ -49,19 +52,17 @@ if (
             ':datetime_out' => $datetime_out,
             ':attendance_status' => $attendance_status,
             ':check_type' => $check_type,
-            ':attendance_type' => $attendance_type, // Include attendance_type
             ':is_late_in' => $is_late_in,
+            ':is_late_out' => $is_late_out,
             ':id' => $id
         ]);
 
-        // If check-out exists, update is_late_out separately
-        if ($check_type == 1) {
-            $sql_out = "UPDATE attendance_records SET is_late_out = :is_late_out WHERE id = :id";
-            $stmt_out = $pdo->prepare($sql_out);
-            $stmt_out->execute([':is_late_out' => $is_late_out, ':id' => $id]);
+        // Check if any rows were updated
+        if ($stmt->rowCount() > 0) {
+            echo json_encode(['status' => 'success', 'message' => 'Record updated successfully']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'No record found with the given ID']);
         }
-
-        echo json_encode(['status' => 'success', 'message' => 'Record updated successfully']);
     } catch (PDOException $e) {
         // Log the error for debugging
         error_log("Error updating record: " . $e->getMessage());

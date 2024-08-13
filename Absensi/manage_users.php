@@ -74,7 +74,7 @@ if (isset($_GET['file'])) {
         $isLate = ($check_type == 0 && $datetime->format('H:i:s') > $checkInTimeLimit) ? 1 : 0;
 
         // Insert record
-        $stmt = $pdo->prepare("INSERT INTO attendance_records (user_id, datetime, attendance_status, check_type, attendance_type, is_late) 
+        $stmt = $pdo->prepare("INSERT INTO attendance_records (user_id, datetime, attendance_status, check_type, is_late) 
                                 VALUES (:user_id, :datetime, 1, :check_type, 1, :is_late)");
         $stmt->bindParam(':user_id', $user_id);
         $stmt->bindParam(':datetime', $formatted_datetime);

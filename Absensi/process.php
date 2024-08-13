@@ -56,6 +56,8 @@ if (isset($_SESSION['uploaded_file'])) {
                 continue;
             }
 
+            
+
             $formatted_datetime = $datetime->format('Y-m-d H:i:s');
             $date = $datetime->format('Y-m-d');
 

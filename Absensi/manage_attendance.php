@@ -44,7 +44,7 @@ function logAbsentees($pdo) {
         
                 if ($hasCheckIn->fetchColumn() == 0 || $hasCheckOut->fetchColumn() == 0) {
                     // Log the user as absent if either check-in or check-out is missing
-                    $stmt = $pdo->prepare("INSERT INTO attendance_records (user_id, datetime, attendance_status, check_type, attendance_type) VALUES (:user_id, :datetime, '0', 'check_in', '1')");
+                    $stmt = $pdo->prepare("INSERT INTO attendance_records (user_id, datetime, attendance_status, check_type) VALUES (:user_id, :datetime, '0', '1')");
                     $stmt->execute([
                         'user_id' => $userId,
                         'datetime' => $date->format('Y-m-d 09:00:00') // Assuming 9 AM for absentees
@@ -67,16 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $datetime = $_POST['datetime'];
         $attendance_status = $_POST['attendance_status']; // Capture attendance_status
         $check_type = $_POST['check_type'];
-        $attendance_type = $_POST['attendance_type']; // Capture attendance_type
 
         try {
             // Prepare and execute the update statement
-            $stmt = $pdo->prepare("UPDATE attendance_records SET user_id = :user_id, datetime = :datetime, attendance_status = :attendance_status, check_type = :check_type, attendance_type = :attendance_type WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE attendance_records SET user_id = :user_id, datetime = :datetime, attendance_status = :attendance_status, check_type = :check_type WHERE id = :id");
             $stmt->bindParam(':user_id', $user_id);
             $stmt->bindParam(':datetime', $datetime);
             $stmt->bindParam(':attendance_status', $attendance_status); // Bind attendance_status
             $stmt->bindParam(':check_type', $check_type);
-            $stmt->bindParam(':attendance_type', $attendance_type); // Bind attendance_type
             $stmt->bindParam(':id', $id);
             $stmt->execute();
 

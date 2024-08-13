@@ -1,7 +1,6 @@
 <?php
-require_once 'config.php'; 
+require_once 'config.php';
 
-// Establish Database Connection
 try {
     $pdo = new PDO("mysql:host={$dbConfig['host']};dbname={$dbConfig['dbname']}", $dbConfig['username'], $dbConfig['password']);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -9,30 +8,16 @@ try {
     die(json_encode(['status' => 'error', 'message' => 'Database connection failed: ' . $e->getMessage()]));
 }
 
-// Fetch Records
 $id = isset($_GET['id']) ? $_GET['id'] : null; 
 $user_id = isset($_GET['user_id']) ? $_GET['user_id'] : null; 
 $attendance_status = isset($_GET['attendance_status']) ? $_GET['attendance_status'] : null; 
 $name = isset($_GET['name']) ? $_GET['name'] : null; 
 $is_late = isset($_GET['is_late']) ? $_GET['is_late'] : null; 
-$attendance_type = isset($_GET['attendance_type']) ? $_GET['attendance_type'] : null; 
 
-// Attendance Status Mapping
-$attendanceStatusMapping = [ 
-    '0' => 'Absent', 
-    '1' => 'Present', 
-    '2' => 'Izin',
-    '3' => 'Sakit',
-    '4' => 'Alfa',
-    '5' => 'Belum Checkout' // Added for "Belum Checkout" status
-];
-
-// Query Construction
 $query = 'SELECT ar.*, u.full_name FROM attendance_records ar 
           JOIN users u ON ar.user_id = u.user_id WHERE 1=1';
 $params = [];
 
-// Add filters to query based on parameters
 if ($id !== null && $id !== '') {
     $query .= ' AND ar.id = :id';
     $params[':id'] = $id;
@@ -58,49 +43,31 @@ if ($is_late !== null && $is_late !== '') {
     $params[':is_late'] = $is_late;
 }
 
-if ($attendance_type !== null && $attendance_type !== '') {
-    $query .= ' AND ar.attendance_type = :attendance_type';
-    $params[':attendance_type'] = $attendance_type;
-}
-
-// Execute Query with Prepared Statement
 $stmt = $pdo->prepare($query);
-error_log("Query: $query");
-error_log("Params: " . json_encode($params));
 
-// Check if query execution is successful
 if (!$stmt->execute($params)) {
-    error_log("Error executing query: " . json_encode($stmt->errorInfo()));
     http_response_code(500); 
     echo json_encode(["error" => "An error occurred while fetching data."]);
     exit();
 }
 
-$records = $stmt->fetchAll(PDO::FETCH_ASSOC); 
-error_log("Fetched records: " . json_encode($records)); 
+$records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Translate attendance_status status back to keywords for display
+$attendanceStatusMapping = [ 
+    '0' => 'Absent', 
+    '1' => 'Present', 
+    '2' => 'Izin',
+    '3' => 'Sakit',
+    '4' => 'Alfa',
+    '5' => 'Belum Checkout',
+    '6' => 'Belum Checkin'
+];
+
 foreach ($records as &$record) {
     $record['attendance_status_text'] = $attendanceStatusMapping[$record['attendance_status']] ?? 'Unknown'; 
-
-    // Determine check-out time based on the check-in time and business logic
-    $datetime = new DateTime($record['datetime']);
-    $hour = (int)$datetime->format('H');
-
-    // Assuming check-out time is after 5 PM or before 1 AM
-    if ($hour >= 17 || $hour < 1) {
-        $record['datetime_out'] = $record['datetime'];
-        $record['attendance_out'] = 'Present';
-    } else {
-        $record['datetime_out'] = '-';
-        $record['attendance_out'] = '-';
-    }
-
-    // Check for late status
     $record['is_late_text'] = $record['is_late'] ? 'Late' : 'On Time';
 }
 
-// Send the response as JSON
 header('Content-Type: application/json');
 echo json_encode($records);
 ?>

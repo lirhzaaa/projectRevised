@@ -183,11 +183,10 @@ function saveRecord(id) {
     formData.append('datetime_in', datetimeIn);
     formData.append('datetime_out', datetimeOut);
     formData.append('attendance_status', attendanceStatus);
-    formData.append('attendance_type', attendanceType); // Include attendance_type
     formData.append('is_late_in', isLateIn);
     formData.append('is_late_out', isLateOut);
 
-    fetch('../save_record.php', {
+    fetch('../manage_record.php', {
         method: 'POST',
         body: formData
     })
@@ -209,37 +208,6 @@ function saveRecord(id) {
         console.error('Error saving record:', error);
         alert('An error occurred while saving the record. Please try again later.'); 
     });
-}
-
-
-
-
-
-function deleteRecord(id) {
-    if (confirm('Are you sure you want to delete this record?')) {
-        fetch('../manage_record.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                action: 'delete',
-                id: id
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('Record deleted successfully');
-                fetchRecords(); // Refresh records after deletion
-            } else {
-                alert('Delete failed: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
 }
 
 
