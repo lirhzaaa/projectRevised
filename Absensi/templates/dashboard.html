@@ -147,114 +147,126 @@
         document.addEventListener('DOMContentLoaded', () => {
             fetchStatistics();
         });
-
+    
         function fetchStatistics() {
             fetch('../fetch_statistics.php')
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data); // Debugging line to check data
-
-                    document.getElementById('totalRecords').textContent = data.total_records;
-                    document.getElementById('present').textContent = data.present;
-                    document.getElementById('absent').textContent = data.absent;
-                    document.getElementById('Izin').textContent = data.Izin;
-                    document.getElementById('sakit').textContent = data.sakit;
-                    document.getElementById('alfa').textContent = data.alfa;
-                    document.getElementById('late').textContent = data.late;
-                    document.getElementById('onTime').textContent = data.on_time;
-
-                    const lateStatistics = `
-                        Total Late: ${data.late}<br>
-                        <ul>
-                            <li>15-30 minutes late: ${data.late_15_30}</li>
-                            <li>30-60 minutes late: ${data.late_30_60}</li>
-                            <li>More than an hour late: ${data.late_60}</li>
-                        </ul>
-                    `;
-                    document.getElementById('lateStatistics').innerHTML = lateStatistics;
-
-                    const ctx = document.getElementById('attendanceChart').getContext('2d');
-                    new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: ['Present', 'Null', 'Izin' , 'Sakit', 'Alfa', 'Late', 'On Time'],
-                            datasets: [{
-                                data: [data.present, data.absent, data.Izin, data.sakit, data.alfa, data.late, data.on_time],
-                                backgroundColor: ['#4CAF50', '#FF5733', '#FFC107', '#2196F3'],
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'top',
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'attendance_status Statistics'
-                                }
-                            }
-                        }
-                    });
-
-                    // Prepare date-wise data for the line chart
-                    const dateWiseLabels = data.date_wise.map(item => item.date);
-                    const lateData = data.date_wise.map(item => item.late_count);
-                    const onTimeData = data.date_wise.map(item => item.on_time_count);
-
-                    console.log(dateWiseLabels, lateData, onTimeData); // Debugging line to check chart data
-
-                    const dateWiseCtx = document.getElementById('dateWiseChart').getContext('2d');
-                    new Chart(dateWiseCtx, {
-                        type: 'line',
-                        data: {
-                            labels: dateWiseLabels,
-                            datasets: [
-                                {
-                                    label: 'Late',
-                                    data: lateData,
-                                    borderColor: '#FF5733',
-                                    fill: false
-                                },
-                                {
-                                    label: 'On Time',
-                                    data: onTimeData,
-                                    borderColor: '#2196F3',
-                                    fill: false
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'top',
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Date-wise attendance_status Statistics'
-                                }
+                    if (data.status === 'success') {
+                        const stats = data.statistics;
+    
+                        document.getElementById('totalRecords').textContent = stats.total_records;
+                        document.getElementById('present').textContent = stats.present;
+                        document.getElementById('absent').textContent = stats.absent;
+                        document.getElementById('Izin').textContent = stats.Izin;
+                        document.getElementById('sakit').textContent = stats.sakit;
+                        document.getElementById('alfa').textContent = stats.alfa;
+                        document.getElementById('late').textContent = stats.late;
+                        document.getElementById('onTime').textContent = stats.on_time;
+    
+                        const lateStatistics = `
+                            Total Late: ${stats.late}<br>
+                            <ul>
+                                <li>15-30 minutes late: ${stats.late_15_30}</li>
+                                <li>30-60 minutes late: ${stats.late_30_60}</li>
+                                <li>More than an hour late: ${stats.late_60}</li>
+                            </ul>
+                        `;
+                        document.getElementById('lateStatistics').innerHTML = lateStatistics;
+    
+                        const ctx = document.getElementById('attendanceChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: ['Present', 'Absent', 'Izin', 'Sakit', 'Alfa', 'Late', 'On Time'],
+                                datasets: [{
+                                    data: [
+                                        stats.present,
+                                        stats.absent,
+                                        stats.Izin,
+                                        stats.sakit,
+                                        stats.alfa,
+                                        stats.late,
+                                        stats.on_time
+                                    ],
+                                    backgroundColor: ['#4CAF50', '#FF5733', '#FFC107', '#2196F3', '#1E201E', '#800000', '#86AB89'],
+                                }]
                             },
-                            scales: {
-                                x: {
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                    },
                                     title: {
                                         display: true,
-                                        text: 'Date'
-                                    }
-                                },
-                                y: {
-                                    title: {
-                                        display: true,
-                                        text: 'Count'
+                                        text: 'Attendance Statistics'
                                     }
                                 }
                             }
-                        }
-                    });
-                });
+                        });
+    
+                        // Prepare date-wise data for the line chart
+                        const dateWiseLabels = stats.date_wise.map(item => item.date);
+                        const lateData = stats.date_wise.map(item => item.late_count);
+                        const onTimeData = stats.date_wise.map(item => item.on_time_count);
+    
+                        const dateWiseCtx = document.getElementById('dateWiseChart').getContext('2d');
+                        new Chart(dateWiseCtx, {
+                            type: 'line',
+                            data: {
+                                labels: dateWiseLabels,
+                                datasets: [
+                                    {
+                                        label: 'Late',
+                                        data: lateData,
+                                        borderColor: '#FF5733',
+                                        fill: false
+                                    },
+                                    {
+                                        label: 'On Time',
+                                        data: onTimeData,
+                                        borderColor: '#2196F3',
+                                        fill: false
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Date-wise Attendance Statistics'
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Date'
+                                        }
+                                    },
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Count'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        console.error('Error fetching statistics:', data.message);
+                    }
+                })
+                .catch(error => console.error('Fetch error:', error));
         }
     </script>
+    
 </body>
 </html>

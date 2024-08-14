@@ -27,7 +27,7 @@
         }
     </style>
 </head>
-<body>
+<body>  
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <a class="navbar-brand" href="#">
             <img src="img/logo.png" alt="Company Logo" style="height: 40px; margin-right: 10px;">
@@ -220,10 +220,10 @@
                         new Chart(ctx, {
                             type: 'pie',
                             data: {
-                                labels: ['Present', 'Absent', 'Late', 'On Time'],
+                                labels: ['Present', 'Null', 'Izin' , 'Sakit', 'Alfa', 'Late', 'On Time'],
                                 datasets: [{
                                     data: [presentCount, absentCount, lateCount, onTimeCount],
-                                    backgroundColor: ['#4CAF50', '#FF5733', '#FFC107', '#2196F3'],
+                                    backgroundColor: ['#4CAF50', '#FF5733', '#FFC107', '#2196F3', '#1E201E' , '#800000' ,'#86AB89'],
                                 }]
                             },
                             options: {

@@ -51,34 +51,31 @@ if ($user_id !== null) {
         $totalRecordsStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records');
         $totalRecords = $totalRecordsStmt->fetchColumn();
 
-        $presentStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND attendance_status > 0');
+        $presentStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status = "Present"');
         $present = $presentStmt->fetchColumn();
 
-        $absentStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND attendance_status = 0');
-        $absent = $absentStmt->fetchColumn();
+        $izinStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status = "Izin"');
+        $izin = $izinStmt->fetchColumn();
 
-        $IzinStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND attendance_status > 0');
-        $Izin = $IzinStmt->fetchColumn();
-
-        $sakitStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND attendance_status = 0');
+        $sakitStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status = "Sakit"');
         $sakit = $sakitStmt->fetchColumn();
 
-        $alfaStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND attendance_status = 0');
+        $alfaStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status = "Alfa"');
         $alfa = $alfaStmt->fetchColumn();
 
-        $lateStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND TIME(datetime) > "09:45:00"');
+        $lateStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE TIME(datetime) > "09:45:00"');
         $late = $lateStmt->fetchColumn();
 
-        $onTimeStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND TIME(datetime) <= "09:45:00"');
+        $onTimeStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE TIME(datetime) <= "09:45:00"');
         $onTime = $onTimeStmt->fetchColumn();
 
-        $late15to30Stmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND TIME(datetime) BETWEEN "09:45:01" AND "10:00:00"');
+        $late15to30Stmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE TIME(datetime) BETWEEN "09:45:01" AND "10:00:00"');
         $late15to30 = $late15to30Stmt->fetchColumn();
 
-        $late30to60Stmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND TIME(datetime) BETWEEN "10:00:01" AND "10:30:00"');
+        $late30to60Stmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE TIME(datetime) BETWEEN "10:00:01" AND "10:30:00"');
         $late30to60 = $late30to60Stmt->fetchColumn();
 
-        $late60Stmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE attendance_status IS NOT NULL AND TIME(datetime) > "10:30:00"');
+        $late60Stmt = $pdo->query('SELECT COUNT(*) FROM attendance_records WHERE TIME(datetime) > "10:30:00"');
         $late60 = $late60Stmt->fetchColumn();
 
         $dateWiseStmt = $pdo->query('
@@ -94,8 +91,7 @@ if ($user_id !== null) {
         $statistics = [
             'total_records' => $totalRecords,
             'present' => $present,
-            'absent' => $absent,
-            'Izin' => $Izin,
+            'izin' => $izin,
             'sakit' => $sakit,
             'alfa' => $alfa,
             'late' => $late,
