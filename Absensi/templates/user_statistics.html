@@ -144,7 +144,7 @@
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>No</th>
                         <th>User ID</th>
                         <th>Full Name</th>
                         <th>Check In</th>
@@ -154,7 +154,6 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                
                 <tbody id="attendance-table-body">
                     <!-- Records will be injected here -->
                 </tbody>
@@ -169,13 +168,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/eonasdan-bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/eonasdan-bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
+<!-- Include Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<!-- Include Flatpickr JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <script>
-        // Inisialisasi flatpickr pada elemen input tanggal
-        document.addEventListener('DOMContentLoaded', function () {
-            flatpickr('.datetimepicker', {
-                enableTime: true,
-                dateFormat: 'Y-m-d H:i',
-            });
+// Initialize flatpickr on datetimepicker elements
+document.addEventListener('DOMContentLoaded', function () {
+    flatpickr('.datetimepicker', {
+        enableTime: true,
+        dateFormat: 'Y-m-d H:i',
+    });
+    
+            // Fetch user statistics on page load
+            fetchUserStatistics();
         });
     
         function fetchUserStatistics() {
@@ -188,17 +196,19 @@
             }
     
             fetch(`../fetch_statistics.php?user_id=${userId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        document.getElementById('user-name').innerHTML = `<p class="text-danger">${data.error}</p>`;
-                    } else {
-                        document.getElementById('user-name').textContent = `${data.user.full_name}'s User Statistics`;
+    .then(response => response.json())
+    .then(data => {
+        console.log(data); // Log the data to check its structure and contents
+
+        if (data.error) {
+            document.getElementById('user-name').innerHTML = `<p class="text-danger">${data.error}</p>`;
+        } else {
+            // Process and display data
     
                         const attendance = data.attendance;
                         document.getElementById('totalRecords').textContent = attendance.length;
-                        const presentCount = attendance.filter(record => record.attendance > 0).length;
-                        const absentCount = attendance.filter(record => record.attendance === 0).length;
+                        const presentCount = attendance.filter(record => record.attendance_status === 'Present').length;
+                        const absentCount = attendance.filter(record => record.attendance_status === 'Absent').length;
                         const lateCount = attendance.filter(record => record.late === 1).length;
                         const onTimeCount = attendance.length - lateCount;
                         document.getElementById('present').textContent = presentCount;
@@ -206,6 +216,7 @@
                         document.getElementById('late').textContent = lateCount;
                         document.getElementById('onTime').textContent = onTimeCount;
     
+                        // Late statistics
                         const lateStatistics = `
                             Total Late: ${lateCount}<br>
                             <ul>
@@ -216,14 +227,15 @@
                         `;
                         document.getElementById('lateStatistics').innerHTML = lateStatistics;
     
+                        // Chart for attendance statistics
                         const ctx = document.getElementById('attendanceChart').getContext('2d');
                         new Chart(ctx, {
                             type: 'pie',
                             data: {
-                                labels: ['Present', 'Null', 'Izin' , 'Sakit', 'Alfa', 'Late', 'On Time'],
+                                labels: ['Present', 'Absent', 'Late', 'On Time'],
                                 datasets: [{
                                     data: [presentCount, absentCount, lateCount, onTimeCount],
-                                    backgroundColor: ['#4CAF50', '#FF5733', '#FFC107', '#2196F3', '#1E201E' , '#800000' ,'#86AB89'],
+                                    backgroundColor: ['#4CAF50', '#FF5733', '#FFC107', '#2196F3'],
                                 }]
                             },
                             options: {
@@ -241,15 +253,16 @@
                             }
                         });
     
+                        // Date-wise attendance chart
                         const dateWiseAttendance = {};
                         attendance.forEach(record => {
-                            const date = moment(record.datetime).format('MM-DD'); // Format to month-day
+                            const date = moment(record.datetime).format('MM-DD');
                             if (!dateWiseAttendance[date]) {
                                 dateWiseAttendance[date] = { in: [], out: [] };
                             }
-                            if (record.attendance > 0) { // Present
+                            if (record.attendance_status === 'Present') {
                                 dateWiseAttendance[date].in.push(record);
-                            } else { // Absent or other
+                            } else {
                                 dateWiseAttendance[date].out.push(record);
                             }
                         });
@@ -297,44 +310,40 @@
                             }
                         });
     
-                        document.getElementById('attendance-table-body').innerHTML = Object.keys(dateWiseAttendance).map((date, index) => {
-                            const records = dateWiseAttendance[date];
-                            const userId = records.in.length > 0 ? records.in[0].user_id : (records.out.length > 0 ? records.out[0].user_id : '');
-                            const fullName = data.user.full_name;
-                            const datetimeIn = records.in.length > 0 ? moment(records.in[0].datetime).format('YYYY-MM-DDTHH:mm') : '';
-                            const datetimeOut = records.out.length > 0 ? moment(records.out[0].datetime).format('YYYY-MM-DDTHH:mm') : '';
-    
-                            return `
-                                <tr>
-                                    <td>${index + 1}</td>
-                                    <td><input type="text" value="${userId}" class="form-control" readonly></td>
-                                    <td>${fullName}</td>
-                                    <td><input type="datetime-local" value="${datetimeIn}" class="form-control datetimepicker"></td>
-                                    <td><input type="datetime-local" value="${datetimeOut}" class="form-control datetimepicker"></td>
-                                    <td>
-                                        <select class="form-control">
-                                            <option value="0" ${records.in.length > 0 && records.in[0].attendance === 0 ? 'selected' : ''}>Absent</option>
-                                            <option value="1" ${records.in.length > 0 && records.in[0].attendance === 1 ? 'selected' : ''}>Present</option>
-                                            <option value="2" ${records.in.length > 0 && records.in[0].attendance === 2 ? 'selected' : ''}>Izin</option>
-                                            <option value="3" ${records.in.length > 0 && records.in[0].attendance === 3 ? 'selected' : ''}>Sakit</option>
-                                            <option value="4" ${records.in.length > 0 && records.in[0].attendance === 4 ? 'selected' : ''}>Alfa</option>
-                                            <option value="5" ${records.in.length > 0 && records.in[0].attendance === 5 ? 'selected' : ''}>Belum Checkout</option>
-                                            <option value="6" ${records.in.length > 0 && records.in[0].attendance === 6 ? 'selected' : ''}>Belum Checkin</option>
-                                        </select>
-                                    </td>
-                                    <td>${records.in.length > 0 ? (records.in[0].late === 1 ? 'Late' : 'On Time') : '-'}</td>
-                                    <td>
-                                        <button onclick="saveRecord(${records.in.length > 0 ? records.in[0].id : ''}, 'in')" class="btn btn-primary">
-                                            <i class="fas fa-save"></i> Save Change
-                                        </button>
-                                        <button onclick="deleteRecord(${records.in.length > 0 ? records.in[0].id : ''})" class="btn btn-danger">
-                                            <i class="fas fa-trash-alt"></i> Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('');
-    
+                        document.getElementById('attendance-table-body').innerHTML = data.attendance.map((record, index) => {
+    const datetimeIn = record.check_type === 'Check In' ? moment(record.datetime).format('YYYY-MM-DDTHH:mm') : '';
+    const datetimeOut = record.check_type === 'Check Out' ? moment(record.datetime).format('YYYY-MM-DDTHH:mm') : '';
+    return `
+        <tr>
+            <td>${index + 1}</td>
+                                                <td><input type="text" value="${userId}" class="form-control" readonly></td>
+            <td>${data.user.full_name}</td>
+            <td><input type="datetime-local" value="${datetimeIn}" class="form-control datetimepicker"></td>
+            <td><input type="datetime-local" value="${datetimeOut}" class="form-control datetimepicker"></td>
+            <td>
+                <select class="form-control">
+                    <option value="0" ${record.attendance_status === 0 ? 'selected' : ''}>Absent</option>
+                    <option value="1" ${record.attendance_status === 1 ? 'selected' : ''}>Present</option>
+                    <option value="2" ${record.attendance_status === 2 ? 'selected' : ''}>Izin</option>
+                    <option value="3" ${record.attendance_status === 3 ? 'selected' : ''}>Sakit</option>
+                    <option value="4" ${record.attendance_status === 4 ? 'selected' : ''}>Alfa</option>
+                    <option value="5" ${record.attendance_status === 5 ? 'selected' : ''}>Belum Checkout</option>
+                    <option value="6" ${record.attendance_status === 6 ? 'selected' : ''}>Belum Checkin</option>
+                </select>
+            </td>
+            <td>${record.late === 1 ? 'Late' : 'On Time'}</td>
+            <td>
+                <button onclick="saveRecord(${record.id}, '${record.check_type}')" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Change
+                </button>
+                <button onclick="deleteRecord(${record.id})" class="btn btn-danger">
+                    <i class="fas fa-trash-alt"></i> Delete
+                </button>
+            </td>
+        </tr>
+    `;
+}).join('');
+
                         // Reinitialize datetime pickers after table update
                         flatpickr('.datetimepicker', {
                             enableTime: true,
@@ -346,12 +355,11 @@
         }
     
         function saveRecord(id, type) {
-            const row = $(event.target).closest('tr');
-            const userId = row.find('input').eq(0).val();
-            const datetime = row.find('input').eq(1).val();
-            const attendance = row.find('select').val();
+            const row = event.target.closest('tr');
+            const userId = row.querySelector('input').value;
+            const datetime = row.querySelectorAll('input')[1].value;
+            const attendance = row.querySelector('select').value;
     
-            // Menentukan check-in atau check-out berdasarkan type
             const checkType = type === 'in' ? 'Check In' : 'Check Out';
     
             const data = {
@@ -401,10 +409,8 @@
                 .catch(error => console.error('Error deleting record:', error));
             }
         }
-    
-        // Fetch user statistics on page load
-        fetchUserStatistics();
     </script>
+    
     
  
 </body>
