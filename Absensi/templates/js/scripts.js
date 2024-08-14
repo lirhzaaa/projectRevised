@@ -24,10 +24,7 @@ function fetchRecords() {
     attendanceStatusFilterElement = document.getElementById('attendance_statusFilter');
     nameFilterElement = document.getElementById('nameFilter');
     lateFilterElement = document.getElementById('lateFilter');
-    // Log the elements to the console for debugging (optional)
-    console.log('idFilterElement:', idFilterElement); 
-    console.log('userIdFilterElement:', userIdFilterElement); 
-    // ... (log other filter elements)
+    
     // Get filter values, handling null cases
     const idFilter = idFilterElement ? idFilterElement.value : ''; 
     const userIdFilter = userIdFilterElement ? userIdFilterElement.value : '';
@@ -59,15 +56,16 @@ function displayRecords(data) {
     const recordsDiv = document.getElementById('records');
     let table = '<table class="table table-bordered"><tr><th>ID</th><th>User ID</th><th>Full Name</th><th>Check In</th><th>Check Out</th><th>Attendance Status</th><th>Late Status (In/Out)</th><th>Actions</th></tr>';
 
+    // Initialize objects to store grouped data
     const groupedData = {};
-    let dayIds = {}; // To keep track of IDs for each day
 
     data.forEach(record => {
         const date = record.datetime.split(' ')[0]; // Extract date part
         const key = `${record.user_id}_${date}`;
+        
         if (!groupedData[key]) {
             groupedData[key] = {
-                id: record.id, // Include the original record ID
+                id: null, // Default to null, to be set later
                 user_id: record.user_id,
                 full_name: record.full_name,
                 date: date,
@@ -77,14 +75,19 @@ function displayRecords(data) {
                 is_late: null
             };
         }
+        
         if (record.check_type === 0) { // Check-in
             groupedData[key].check_in = record.datetime;
             groupedData[key].is_late = record.is_late; // Assume late status is associated with check-in
         } else if (record.check_type === 1) { // Check-out
             groupedData[key].check_out = record.datetime;
         }
+
+        // Set ID to the latest record ID (assuming this is how you want to handle it)
+        groupedData[key].id = record.id;
     });
 
+    // Update attendance status and create table rows
     Object.values(groupedData).forEach(record => {
         if (record.check_in && record.check_out) {
             record.attendance_status = 'Present';
@@ -95,10 +98,7 @@ function displayRecords(data) {
         } else {
             record.attendance_status = 'Absent';
         }
-    });
 
-    // Generate table rows
-    Object.values(groupedData).forEach(record => {
         // Check if check-in is late (if available)
         let isLateIn = record.check_in ? isLate(new Date(record.check_in), true) : '-';
         // Check-out status always "-"
@@ -144,7 +144,6 @@ function displayRecords(data) {
         dateFormat: 'Y-m-d H:i',
     });
 }
-
 
 function isLate(datetime, isCheckIn = true) {
     const thresholdHour = 7;
@@ -209,7 +208,6 @@ function saveRecord(id) {
         alert('An error occurred while saving the record. Please try again later.'); 
     });
 }
-
 
 function deleteRecords(type) {
     if (!confirm('Are you sure you want to delete all records?')) {
