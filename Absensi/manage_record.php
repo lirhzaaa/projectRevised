@@ -17,17 +17,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($action == 'edit') {
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
         $user_id = filter_input(INPUT_POST, 'user_id', FILTER_SANITIZE_STRING);
-        $datetime = filter_input(INPUT_POST, 'datetime', FILTER_SANITIZE_STRING);
+        $check_in_time = filter_input(INPUT_POST, 'check_in_time', FILTER_SANITIZE_STRING);
+        $check_out_time = filter_input(INPUT_POST, 'check_out_time', FILTER_SANITIZE_STRING);
         $attendance_status = filter_input(INPUT_POST, 'attendance_status', FILTER_SANITIZE_STRING);
-        $check_type = filter_input(INPUT_POST, 'check_type', FILTER_SANITIZE_STRING);
+        $is_late_in = filter_input(INPUT_POST, 'is_late_in', FILTER_VALIDATE_INT);
+        $is_late_out = filter_input(INPUT_POST, 'is_late_out', FILTER_VALIDATE_INT);
 
-        if ($id && $user_id && $datetime && $attendance_status !== '') {
+        if ($id && $user_id && $attendance_status !== '') {
             try {
-                $stmt = $pdo->prepare("UPDATE attendance_records SET user_id = :user_id, datetime = :datetime, attendance_status = :attendance_status, check_type = :check_type WHERE id = :id");
+                $stmt = $pdo->prepare("UPDATE attendance_records SET user_id = :user_id, check_in_time = :check_in_time, check_out_time = :check_out_time, attendance_status = :attendance_status, is_late_in = :is_late_in, is_late_out = :is_late_out WHERE id = :id");
                 $stmt->bindParam(':user_id', $user_id);
-                $stmt->bindParam(':datetime', $datetime);
+                $stmt->bindParam(':check_in_time', $check_in_time);
+                $stmt->bindParam(':check_out_time', $check_out_time);
                 $stmt->bindParam(':attendance_status', $attendance_status);
-                $stmt->bindParam(':check_type', $check_type);
+                $stmt->bindParam(':is_late_in', $is_late_in);
+                $stmt->bindParam(':is_late_out', $is_late_out);
                 $stmt->bindParam(':id', $id);
                 $stmt->execute();
 
