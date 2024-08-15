@@ -300,38 +300,87 @@
             return date > thresholdTime ? 'Late' : 'On Time';
         }
 
-    function saveRecord(id) {
-        const userId = document.getElementById(`user_id_${id}`).value;
-        const datetimeIn = document.getElementById(`datetime_${id}_in`).value.replace('T', ' ');
-        const datetimeOut = document.getElementById(`datetime_${id}_out`).value.replace('T', ' ');
-        const attendanceStatus = document.getElementById(`attendance_status_${id}`).value;
+        function saveRecord(id) {
+    const userId = document.getElementById(`user_id_${id}`).value;
+    const datetimeIn = document.getElementById(`datetime_${id}_in`).value.replace('T', ' ');
+    const datetimeOut = document.getElementById(`datetime_${id}_out`).value.replace('T', ' ');
+    const attendanceStatus = document.getElementById(`attendance_status_${id}`).value;
 
-        fetch('../save_record.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                id: id,
-                user_id: userId,
-                datetime_in: datetimeIn,
-                datetime_out: datetimeOut,
-                attendance_status: attendanceStatus
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                fetchRecords(); // Refresh records
-            } else {
-                alert('Failed to save record.');
-            }
-        })
-        .catch(error => {
-            console.error('Error saving record:', error);
-            alert('An error occurred while saving the record.');
-        });
+    console.log(`Saving record with ID: ${id}, DateTime In: ${datetimeIn}, DateTime Out: ${datetimeOut}, Attendance Status: ${attendanceStatus}`);
+
+    if (!userId || !attendanceStatus) {
+        alert('User ID and attendance status must be filled.');
+        return;
     }
+
+    // Determine late status for check-in and check-out
+    const isLateIn = isLate(new Date(datetimeIn)) ? 1 : 0;
+    const isLateOut = datetimeOut ? (isLate(new Date(datetimeOut)) ? 1 : 0) : 0; // 0 if no check-out
+
+    const formData = new FormData();
+    formData.append('id', id);
+    formData.append('user_id', userId);
+    formData.append('datetime_in', datetimeIn);
+    formData.append('datetime_out', datetimeOut);
+    formData.append('attendance_status', attendanceStatus);
+    formData.append('is_late_in', isLateIn);
+    formData.append('is_late_out', isLateOut);
+
+    fetch('../manage_record.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(text => {
+        if (text === 'success') {
+            alert('Record updated successfully');
+            fetchRecords(); // Refresh records after saving
+        } else {
+            alert('Failed to update record. Server response: ' + text); 
+        }
+    })
+    .catch(error => {
+        console.error('Error saving record:', error);
+        alert('An error occurred while saving the record. Please try again later.'); 
+    });
+}
+
+
+function deleteRecords(type) {
+    if (!confirm('Are you sure you want to delete all records?')) {
+        return; // Exit if user cancels the action
+    }
+
+    let formData = new FormData();
+    formData.append('action', 'delete_all');
+    formData.append('type', type);
+
+    fetch('../manage_attendance.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(text => {
+        try {
+            const data = JSON.parse(text);
+            if (data.status === 'success') {
+                alert('All records deleted successfully.');
+                fetchRecords(); // Refresh records after deletion
+            } else {
+                alert('Delete failed: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error parsing JSON:', error);
+            console.error('Response text:', text); // Log the raw response
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
 </script>
 
     
