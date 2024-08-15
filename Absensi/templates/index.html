@@ -113,119 +113,122 @@
 
         <div id="records"></div>
     </div>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        flatpickr('.datetimepicker', {
-            enableTime: true,
-            dateFormat: 'Y-m-d H:i',
-        });
-        fetchRecords(); // Fetch records when the document is loaded
-    });
-
-    let globalRecordsData = [];
-
-    function getGlobalRecordsData() {
-        return globalRecordsData;
-    }
-
-    function fetchRecords() {
-        let idFilterElement, userIdFilterElement, attendanceStatusFilterElement, nameFilterElement, lateFilterElement;
-        idFilterElement = document.getElementById('idFilter');
-        userIdFilterElement = document.getElementById('userIdFilter');
-        attendanceStatusFilterElement = document.getElementById('attendanceFilter');
-        nameFilterElement = document.getElementById('nameFilter');
-        lateFilterElement = document.getElementById('lateFilter');
-
-        const idFilter = idFilterElement ? idFilterElement.value : '';
-        const userIdFilter = userIdFilterElement ? userIdFilterElement.value : '';
-        const attendanceStatusFilter = attendanceStatusFilterElement ? attendanceStatusFilterElement.value : '';
-        const nameFilter = nameFilterElement ? nameFilterElement.value : '';
-        const lateFilter = lateFilterElement ? lateFilterElement.value : '';
-
-        fetch(`../fetch_records.php?id=${idFilter}&user_id=${userIdFilter}&attendance_status=${attendanceStatusFilter}&name=${nameFilter}&is_late=${lateFilter}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Fetched data:', data);
-
-                globalRecordsData = data;
-                displayRecords(data);
-            })
-            .catch(error => {
-                console.error('Error fetching or parsing records:', error);
-                document.getElementById('records').innerHTML = '<div class="alert alert-danger">An error occurred while fetching records.</div>';
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            flatpickr('.datetimepicker', {
+                enableTime: true,
+                dateFormat: 'Y-m-d H:i',
             });
-    }
-
-    function displayRecords(data) {
-        const recordsDiv = document.getElementById('records');
-        let table = '';
-
-        // Group data by user_id, month and year, merging duplicates
-        const groupedData = {};
-        let counter = 1; // Initialize the counter
-        let minggu = 1;  // Initialize the week counter
-
-        data.forEach(record => {
-            const user_id = record.user_id;
-            const date = new Date(record.datetime);
-            const monthYear = `${date.getFullYear()}-${date.getMonth() + 1}`; // Format as YYYY-MM
-
-            if (!groupedData[monthYear]) {
-                groupedData[monthYear] = {};
-            }
-
-            if (!groupedData[monthYear][user_id]) {
-                groupedData[monthYear][user_id] = {};
-            }
-
-            const key = record.check_type === 0 ? 'check_in' : 'check_out';
-            const keyDate = record.check_type === 0 ? record.datetime.split(' ')[0] : record.datetime.split(' ')[0];
-
-            if (!groupedData[monthYear][user_id][keyDate]) {
-                groupedData[monthYear][user_id][keyDate] = {
-                    id: record.id,
-                    user_id: record.user_id,
-                    full_name: record.full_name,
-                    check_in: null,
-                    check_out: null,
-                    attendance_status: null,
-                    is_late_in: null,
-                    is_late_out: null
-                };
-            }
-
-            if (record.check_type === 0) { // Check In
-                groupedData[monthYear][user_id][keyDate].check_in = record.datetime;
-                groupedData[monthYear][user_id][keyDate].is_late_in = isLate(new Date(record.datetime), true);
-            } else if (record.check_type === 1) { // Check Out
-                groupedData[monthYear][user_id][keyDate].check_out = record.datetime;
-                groupedData[monthYear][user_id][keyDate].is_late_out = isLate(new Date(record.datetime), false);
-            }
+            fetchRecords(); // Fetch records when the document is loaded
         });
-
-        // Display data grouped by month and year
-        Object.keys(groupedData).forEach(monthYear => {
-            const monthYearData = groupedData[monthYear];
-            let monthTable = `<h3>Month: ${monthYear}</h3><table class="table table-bordered"><tr><th>No</th><th>User ID</th><th>Full Name</th><th>Check In</th><th>Check Out</th><th>Attendance Status</th><th>Late Status (In/Out)</th><th>Actions</th></tr>`;
-
-            Object.keys(monthYearData).forEach(user_id => {
-                const userData = monthYearData[user_id];
-                Object.keys(userData).forEach(dateOnly => {
-                    const record = userData[dateOnly];
-                    let no;
-
-                    if (counter === 1) {
-                        monthTable += `<tr><td colspan="8" class="text-center">--Minggu ${minggu}--</td></tr>`;
+    
+        let globalRecordsData = [];
+    
+        function getGlobalRecordsData() {
+            return globalRecordsData;
+        }
+    
+        function fetchRecords() {
+            let idFilterElement, userIdFilterElement, attendanceStatusFilterElement, nameFilterElement, lateFilterElement;
+            idFilterElement = document.getElementById('idFilter');
+            userIdFilterElement = document.getElementById('userIdFilter');
+            attendanceStatusFilterElement = document.getElementById('attendanceFilter');
+            nameFilterElement = document.getElementById('nameFilter');
+            lateFilterElement = document.getElementById('lateFilter');
+    
+            const idFilter = idFilterElement ? idFilterElement.value : '';
+            const userIdFilter = userIdFilterElement ? userIdFilterElement.value : '';
+            const attendanceStatusFilter = attendanceStatusFilterElement ? attendanceStatusFilterElement.value : '';
+            const nameFilter = nameFilterElement ? nameFilterElement.value : '';
+            const lateFilter = lateFilterElement ? lateFilterElement.value : '';
+    
+            fetch(`../fetch_records.php?id=${idFilter}&user_id=${userIdFilter}&attendance_status=${attendanceStatusFilter}&name=${nameFilter}&is_late=${lateFilter}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
-
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fetched data:', data);
+    
+                    globalRecordsData = data;
+                    displayRecords(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching or parsing records:', error);
+                    document.getElementById('records').innerHTML = '<div class="alert alert-danger">An error occurred while fetching records.</div>';
+                });
+        }
+    
+        function displayRecords(data) {
+            const recordsDiv = document.getElementById('records');
+            let table = '';
+    
+            // Group data by user_id and date, merging duplicates
+            const groupedData = {};
+            let counter = 1; // Initialize the counter
+            let minggu = 1;  // Initialize the week counter
+    
+            data.forEach(record => {
+                const user_id = record.user_id;
+                const dateOnly = record.datetime.split(' ')[0]; // Extract date part only
+                const key = `${user_id}_${dateOnly}`;
+    
+                if (!groupedData[key]) {
+                    groupedData[key] = {
+                        id: record.id,
+                        user_id: record.user_id,
+                        full_name: record.full_name,
+                        check_in: null,
+                        check_out: null,
+                        attendance_status: null,
+                        is_late_in: null
+                    };
+                }
+    
+                if (record.check_type == 0) { // Check In
+                    groupedData[key].check_in = record.datetime;
+                    groupedData[key].is_late_in = isLate(new Date(record.datetime));
+                } else if (record.check_type == 1) { // Check Out
+                    groupedData[key].check_out = record.datetime;
+                }
+            });
+    
+            // Remove duplicates for check-in and check-out
+            const mergedData = {};
+            Object.values(groupedData).forEach(record => {
+                const userKey = record.user_id;
+                const dateOnly = record.check_in ? record.check_in.split(' ')[0] : (record.check_out ? record.check_out.split(' ')[0] : '');
+    
+                if (!mergedData[userKey]) {
+                    mergedData[userKey] = {};
+                }
+    
+                if (dateOnly) {
+                    if (!mergedData[userKey][dateOnly]) {
+                        mergedData[userKey][dateOnly] = { ...record };
+                    } else {
+                        // Merge records with the same date
+                        mergedData[userKey][dateOnly].check_in = record.check_in || mergedData[userKey][dateOnly].check_in;
+                        mergedData[userKey][dateOnly].is_late_in = record.is_late_in || mergedData[userKey][dateOnly].is_late_in;
+                    }
+                }
+            });
+    
+            // Flatten mergedData for table display
+            Object.keys(mergedData).forEach(user_id => {
+                Object.keys(mergedData[user_id]).forEach(dateOnly => {
+                    const record = mergedData[user_id][dateOnly];
+                    let no;
+    
+                    if (counter === 1) {
+                        table += `<tr><td colspan="7" class="text-center">--Minggu ${minggu}--</td></tr>`;
+                    }
+    
                     no = counter;
                     counter++;
-
+    
                     if (record.check_in && record.check_out) {
                         record.attendance_status = 'Present';
                     } else if (record.check_in) {
@@ -235,11 +238,10 @@
                     } else {
                         record.attendance_status = 'Absent';
                     }
-
+    
                     let isLateIn = record.check_in ? record.is_late_in : '-';
-                    let isLateOut = record.check_out ? record.is_late_out : '-';
-
-                    monthTable += `<tr>
+    
+                    table += `<tr>
                         <td>${no}</td>
                         <td><input type="text" value="${record.user_id}" id="user_id_${record.id}" class="form-control"></td>
                         <td>${record.full_name}</td>
@@ -256,54 +258,47 @@
                                 <option value="6" ${record.attendance_status === 'Belum Checkin' ? 'selected' : ''}>Belum Checkin</option>
                             </select>
                         </td>
-                        <td>${isLateIn} / ${isLateOut}</td>
+                        <td>${isLateIn}</td>
                         <td>
                             <button onclick="saveRecord(${record.id})" class="btn btn-primary">
                                 <i class="fas fa-pen"></i> Save Change
                             </button>
                         </td>
                     </tr>`;
-
+    
                     if (counter > 5) {
                         counter = 1;
                         minggu++;
-
+    
                         if (minggu > 4) {
                             minggu = 1;
                         }
                     }
                 });
             });
-
-            monthTable += '</table>';
-            table += monthTable;
-        });
-
-        if (Object.keys(groupedData).length === 0) {
-            table += '<div class="alert alert-info">No records found.</div>';
+    
+            if (Object.keys(mergedData).length === 0) {
+                table += '<tr><td colspan="7" class="text-center">No records found.</td></tr>';
+            }
+    
+            table = `<table class="table table-bordered"><tr><th>No</th><th>User ID</th><th>Full Name</th><th>Check In</th><th>Check Out</th><th>Attendance Status</th><th>Late Status (In)</th><th>Actions</th></tr>${table}</table>`;
+            recordsDiv.innerHTML = table;
+    
+            flatpickr('.datetimepicker', {
+                enableTime: true,
+                dateFormat: 'Y-m-d H:i',
+            });
         }
-
-        recordsDiv.innerHTML = table;
-
-        flatpickr('.datetimepicker', {
-            enableTime: true,
-            dateFormat: 'Y-m-d H:i',
-        });
-    }
-
-    function isLate(datetime, isCheckIn = true) {
-        const thresholdHour = 7;
-        const thresholdMinute = 30;
-
-        const date = new Date(datetime);
-        const thresholdTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), thresholdHour, thresholdMinute);
-
-        if (isCheckIn) {
+    
+        function isLate(datetime) {
+            const checkInThresholdHour = 9;
+            const checkInThresholdMinute = 30;
+    
+            const date = new Date(datetime);
+            const thresholdTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), checkInThresholdHour, checkInThresholdMinute);
+    
             return date > thresholdTime ? 'Late' : 'On Time';
-        } else {
-            return '-'; // No late status for check-out
         }
-    }
 
     function saveRecord(id) {
         const userId = document.getElementById(`user_id_${id}`).value;
