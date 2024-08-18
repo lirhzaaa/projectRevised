@@ -14,29 +14,38 @@ try {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_STRING);
 
+    error_log("Action received: " . $action);
+
     if ($action == 'edit') {
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
         $user_id = filter_input(INPUT_POST, 'user_id', FILTER_SANITIZE_STRING);
-        $check_in_time = filter_input(INPUT_POST, 'check_in_time', FILTER_SANITIZE_STRING);
-        $check_out_time = filter_input(INPUT_POST, 'check_out_time', FILTER_SANITIZE_STRING);
+        $datetime = filter_input(INPUT_POST, 'datetime', FILTER_SANITIZE_STRING);
+        $check_type = filter_input(INPUT_POST, 'check_type', FILTER_VALIDATE_INT);
         $attendance_status = filter_input(INPUT_POST, 'attendance_status', FILTER_SANITIZE_STRING);
-        $is_late_in = filter_input(INPUT_POST, 'is_late_in', FILTER_VALIDATE_INT);
-        $is_late_out = filter_input(INPUT_POST, 'is_late_out', FILTER_VALIDATE_INT);
 
         if ($id && $user_id && $attendance_status !== '') {
             try {
-                $stmt = $pdo->prepare("UPDATE attendance_records SET user_id = :user_id, check_in_time = :check_in_time, check_out_time = :check_out_time, attendance_status = :attendance_status, is_late_in = :is_late_in, is_late_out = :is_late_out WHERE id = :id");
+                if ($check_type === 0) {
+                    // Update check-in time
+                    $stmt = $pdo->prepare("UPDATE attendance_records SET user_id = :user_id, datetime = :datetime, attendance_status = :attendance_status WHERE id = :id");
+                } elseif ($check_type === 1) {
+                    // Update check-out time
+                    $stmt = $pdo->prepare("UPDATE attendance_records SET datetime = :datetime, attendance_status = :attendance_status WHERE id = :id");
+                } else {
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid check type']);
+                    exit();
+                }
+                
                 $stmt->bindParam(':user_id', $user_id);
-                $stmt->bindParam(':check_in_time', $check_in_time);
-                $stmt->bindParam(':check_out_time', $check_out_time);
+                $stmt->bindParam(':datetime', $datetime);
                 $stmt->bindParam(':attendance_status', $attendance_status);
-                $stmt->bindParam(':is_late_in', $is_late_in);
-                $stmt->bindParam(':is_late_out', $is_late_out);
                 $stmt->bindParam(':id', $id);
                 $stmt->execute();
-
+                
                 echo json_encode(['status' => 'success', 'message' => 'Record updated successfully']);
+                
             } catch (PDOException $e) {
+                error_log("Update failed: " . $e->getMessage());
                 echo json_encode(['status' => 'error', 'message' => 'Update failed: ' . $e->getMessage()]);
             }
         } else {
@@ -54,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 echo json_encode(['status' => 'success', 'message' => 'Record deleted successfully']);
             } catch (PDOException $e) {
+                error_log("Deletion failed: " . $e->getMessage());
                 echo json_encode(['status' => 'error', 'message' => 'Deletion failed: ' . $e->getMessage()]);
             }
         } else {
@@ -67,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             echo json_encode(['status' => 'success', 'message' => 'All records deleted successfully']);
         } catch (PDOException $e) {
+            error_log("Deletion failed: " . $e->getMessage());
             echo json_encode(['status' => 'error', 'message' => 'Deletion failed: ' . $e->getMessage()]);
         }
 
@@ -88,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             echo json_encode(['status' => 'success', 'message' => 'Record deleted successfully']);
         } catch (PDOException $e) {
+            error_log("Deletion failed: " . $e->getMessage());
             echo json_encode(['status' => 'error', 'message' => 'Deletion failed: ' . $e->getMessage()]);
         }
     } else {
@@ -98,5 +110,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 } else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid request method']);
 }
-
-?>

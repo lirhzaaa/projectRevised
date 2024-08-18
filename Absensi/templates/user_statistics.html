@@ -194,16 +194,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('user-name').innerHTML = '<p class="text-danger">User ID is missing.</p>';
                 return;
             }
+        
     
             fetch(`../fetch_statistics.php?user_id=${userId}`)
     .then(response => response.json())
     .then(data => {
         console.log(data); // Log the data to check its structure and contents
-
         if (data.error) {
-            document.getElementById('user-name').innerHTML = `<p class="text-danger">${data.error}</p>`;
-        } else {
-            // Process and display data
+                        document.getElementById('user-name').innerHTML = `<p class="text-danger">${data.error}</p>`;
+                    } else {
+                        document.getElementById('user-name').textContent = `${data.user.full_name}'s User Statistics`;
+        
     
                         const attendance = data.attendance;
                         document.getElementById('totalRecords').textContent = attendance.length;
@@ -316,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return `
         <tr>
             <td>${index + 1}</td>
-                                                <td><input type="text" value="${userId}" class="form-control" readonly></td>
+            <td><input type="text" value="${userId}" class="form-control" readonly></td>
             <td>${data.user.full_name}</td>
             <td><input type="datetime-local" value="${datetimeIn}" class="form-control datetimepicker"></td>
             <td><input type="datetime-local" value="${datetimeOut}" class="form-control datetimepicker"></td>
