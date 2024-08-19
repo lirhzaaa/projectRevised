@@ -187,185 +187,180 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     
         function fetchUserStatistics() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get('user_id');
-    
-            if (!userId) {
-                document.getElementById('user-name').innerHTML = '<p class="text-danger">User ID is missing.</p>';
-                return;
-            }
-        
-    
-            fetch(`../fetch_statistics.php?user_id=${userId}`)
-    .then(response => response.json())
-    .then(data => {
-        console.log(data); // Log the data to check its structure and contents
-        if (data.error) {
-                        document.getElementById('user-name').innerHTML = `<p class="text-danger">${data.error}</p>`;
-                    } else {
-                        document.getElementById('user-name').textContent = `${data.user.full_name}'s User Statistics`;
-        
-                        const attendance = data.attendance;
-                        document.getElementById('totalRecords').textContent = attendance.length;
-                        const absentCount = attendance.filter(record => record.attendance_status === 0).length;
-                        const presentCount = attendance.filter(record => record.attendance_status === 1).length;
-                        const izinCount = attendance.filter(record => record.attendance_status === 2).length;
-                        const sakitCount = attendance.filter(record => record.attendance_status === 3).length;
-                        const alfaCount = attendance.filter(record => record.attendance_status === 4).length;
-                        const belumCheckoutCount = attendance.filter(record => record.check_type === 5).length;
-                        const belumCheckinCount = attendance.filter(record => record.check_type === 6).length;
-                        const lateCount = attendance.filter(record => record.late === 1).length;
-                        const onTimeCount = attendance.length - lateCount;
-                        document.getElementById('present').textContent = presentCount;
-                        document.getElementById('absent').textContent = absentCount;
-                        document.getElementById('late').textContent = lateCount;
-                        document.getElementById('onTime').textContent = onTimeCount;
-                        document.getElementById('izin').textContent = izinCount;
-                        document.getElementById('sakit').textContent = sakitCount;
-                        document.getElementById('alfa').textContent = alfaCount;
-                        document.getElementById('belumCheckout').textContent = belumCheckoutCount;
-                        document.getElementById('belumCheckin').textContent = belumCheckinCount;
-    
-                        // Late statistics
-                        const lateStatistics = `
-                            Total Late: ${lateCount}<br>
-                            <ul>
-                                <li>15-30 minutes late: ${attendance.filter(record => record.late === 1 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') >= 15 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') < 30).length}</li>
-                                <li>30-60 minutes late: ${attendance.filter(record => record.late === 1 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') >= 30 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') < 60).length}</li>
-                                <li>More than an hour late: ${attendance.filter(record => record.late === 1 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') >= 60).length}</li>
-                            </ul>
-                        `;
-                        document.getElementById('lateStatistics').innerHTML = lateStatistics;
-    
-                        // Chart for attendance statistics
-                        const ctx = document.getElementById('attendanceChart').getContext('2d');
-                        new Chart(ctx, {
-                            type: 'pie',
-                            data: {
-                                labels: ['Present', 'Absent', 'Late', 'On Time'],
-                                datasets: [{
-                                    data: [presentCount, absentCount, lateCount, onTimeCount],
-                                    backgroundColor: ['#4CAF50', '#FF5733', '#FFC107', '#2196F3'],
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        position: 'top',
-                                    },
-                                    title: {
-                                        display: true,
-                                        text: 'Attendance Statistics'
-                                    }
-                                }
-                            }
-                        });
-    
-                        // Date-wise attendance chart
-                        const dateWiseAttendance = {};
-                        attendance.forEach(record => {
-                            const date = moment(record.datetime).format('MM-DD');
-                            if (!dateWiseAttendance[date]) {
-                                dateWiseAttendance[date] = { in: [], out: [] };
-                            }
-                            if (record.attendance_status === 'Present') {
-                                dateWiseAttendance[date].in.push(record);
-                            } else {
-                                dateWiseAttendance[date].out.push(record);
-                            }
-                        });
-    
-                        const dateWiseCtx = document.getElementById('dateWiseChart').getContext('2d');
-                        new Chart(dateWiseCtx, {
-                            type: 'line',
-                            data: {
-                                labels: Object.keys(dateWiseAttendance),
-                                datasets: [{
-                                    label: 'Attendance Count',
-                                    data: Object.values(dateWiseAttendance).map(records => records.in.length + records.out.length),
-                                    borderColor: '#FF5733',
-                                    backgroundColor: 'rgba(255, 87, 51, 0.2)',
-                                    borderWidth: 1,
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        position: 'top',
-                                    },
-                                    title: {
-                                        display: true,
-                                        text: 'Date Wise Attendance'
-                                    }
-                                },
-                                scales: {
-                                    x: {
-                                        title: {
-                                            display: true,
-                                            text: 'Date'
-                                        }
-                                    },
-                                    y: {
-                                        title: {
-                                            display: true,
-                                            text: 'Count'
-                                        },
-                                        beginAtZero: true
-                                    }
-                                }
-                            }
-                        });
-    
-                        document.getElementById('attendance-table-body').innerHTML = data.attendance.map((record, index) => {
-                        const datetimeIn = record.check_in_time ? moment(record.check_in_time).format('YYYY-MM-DDTHH:mm') : '';
-                        const datetimeOut = record.check_out_time ? moment(record.check_out_time).format('YYYY-MM-DDTHH:mm') : '';
-                        
-                        return `
-                            <tr>
-                                <td>${index + 1}</td>
-                                <td><input type="text" value="${userId}" class="form-control" readonly></td>
-                                <td>${data.user.full_name}</td>
-                                <td><input type="datetime-local" value="${datetimeIn}" class="form-control datetimepicker"></td>
-                                <td><input type="datetime-local" value="${datetimeOut}" class="form-control datetimepicker"></td>
-                                <td>
-                                    <select class="form-control">
-                                        <option value="0" ${record.check_in_status == 0 ? 'selected' : ''}>Absent</option>
-                                        <option value="1" ${record.check_in_status == 1 ? 'selected' : ''}>Present</option>
-                                        <option value="2" ${record.check_in_status == 2 ? 'selected' : ''}>Izin</option>
-                                        <option value="3" ${record.check_in_status == 3 ? 'selected' : ''}>Sakit</option>
-                                        <option value="4" ${record.check_in_status == 4 ? 'selected' : ''}>Alfa</option>
-                                        <option value="5" ${record.check_in_status == 5 ? 'selected' : ''}>Belum Checkout</option>
-                                        <option value="6" ${record.check_in_status == 6 ? 'selected' : ''}>Belum Checkin</option>
-                                    </select>
-                                </td>
-                                <td>${record.late_check_in == 1 ? 'Late' : 'On Time'}</td>
-                                <td>
-                                    <button onclick="saveRecord(${record.id}, '${record.check_type}')" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> Save Change
-                                    </button>
-                                    <button onclick="deleteRecord(${record.id})" class="btn btn-danger">
-                                        <i class="fas fa-trash-alt"></i> Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
 
+    if (!userId) {
+        document.getElementById('user-name').innerHTML = '<p class="text-danger">User ID is missing.</p>';
+        return;
+    }
 
-                        // Reinitialize datetime pickers after table update
-                        flatpickr('.datetimepicker', {
-                            enableTime: true,
-                            dateFormat: 'Y-m-d H:i',
-                        });
+    fetch(`../fetch_statistics.php?user_id=${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data); // Log the data to check its structure and contents
+            if (data.error) {
+                document.getElementById('user-name').innerHTML = `<p class="text-danger">${data.error}</p>`;
+            } else {
+                document.getElementById('user-name').textContent = `${data.user.full_name}'s User Statistics`;
+
+                const attendance = data.attendance;
+                document.getElementById('totalRecords').textContent = attendance.length;
+                const absentCount = attendance.filter(record => record.attendance_status === 0).length;
+                const presentCount = attendance.filter(record => record.attendance_status === 1).length;
+                const izinCount = attendance.filter(record => record.attendance_status === 2).length;
+                const sakitCount = attendance.filter(record => record.attendance_status === 3).length;
+                const alfaCount = attendance.filter(record => record.attendance_status === 4).length;
+                const belumCheckoutCount = attendance.filter(record => record.check_type === 5).length;
+                const belumCheckinCount = attendance.filter(record => record.check_type === 6).length;
+                const lateCount = attendance.filter(record => record.is_late === 1).length;
+                const onTimeCount = attendance.length - lateCount;
+
+                document.getElementById('present').textContent = presentCount;
+                document.getElementById('absent').textContent = absentCount;
+                document.getElementById('late').textContent = lateCount;
+                document.getElementById('onTime').textContent = onTimeCount;
+                document.getElementById('izin').textContent = izinCount;
+                document.getElementById('sakit').textContent = sakitCount;
+                document.getElementById('alfa').textContent = alfaCount;
+                document.getElementById('belumCheckout').textContent = belumCheckoutCount;
+                document.getElementById('belumCheckin').textContent = belumCheckinCount;
+
+                // Late statistics
+                const lateStatistics = `
+                    Total Late: ${lateCount}<br>
+                    <ul>
+                        <li>15-30 minutes late: ${attendance.filter(record => record.is_late === 1 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') >= 15 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') < 30).length}</li>
+                        <li>30-60 minutes late: ${attendance.filter(record => record.is_late === 1 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') >= 30 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') < 60).length}</li>
+                        <li>More than an hour late: ${attendance.filter(record => record.is_late === 1 && moment(record.datetime).diff(moment(record.datetime).startOf('day'), 'minutes') >= 60).length}</li>
+                    </ul>
+                `;
+                document.getElementById('lateStatistics').innerHTML = lateStatistics;
+
+                // Chart for attendance statistics
+                const ctx = document.getElementById('attendanceChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Present', 'Absent', 'Late', 'On Time'],
+                        datasets: [{
+                            data: [presentCount, absentCount, lateCount, onTimeCount],
+                            backgroundColor: ['#4CAF50', '#FF5733', '#FFC107', '#2196F3'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Attendance Statistics'
+                            }
+                        }
                     }
-                })
-                .catch(error => console.error('Error fetching user statistics:', error));
-        }
-    
+                });
+
+                // Date-wise attendance chart
+                const dateWiseAttendance = {};
+                attendance.forEach(record => {
+                    const date = moment(record.datetime).format('MM-DD');
+                    if (!dateWiseAttendance[date]) {
+                        dateWiseAttendance[date] = { count: 0 };
+                    }
+                    dateWiseAttendance[date].count += 1;
+                });
+
+                const dateWiseCtx = document.getElementById('dateWiseChart').getContext('2d');
+                new Chart(dateWiseCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Object.keys(dateWiseAttendance),
+                        datasets: [{
+                            label: 'Attendance Count',
+                            data: Object.values(dateWiseAttendance).map(records => records.count),
+                            borderColor: '#FF5733',
+                            backgroundColor: 'rgba(255, 87, 51, 0.2)',
+                            borderWidth: 1,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Date Wise Attendance'
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Count'
+                                },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+                document.getElementById('attendance-table-body').innerHTML = data.attendance.map((record, index) => {
+                    const datetimeIn = record.check_in_time ? moment(record.check_in_time).format('YYYY-MM-DDTHH:mm') : '';
+                    const datetimeOut = record.check_out_time ? moment(record.check_out_time).format('YYYY-MM-DDTHH:mm') : '';
+                    
+                    return `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td><input type="text" value="${userId}" class="form-control" readonly></td>
+                            <td>${data.user.full_name}</td>
+                            <td><input type="datetime-local" value="${datetimeIn}" class="form-control datetimepicker"></td>
+                            <td><input type="datetime-local" value="${datetimeOut}" class="form-control datetimepicker"></td>
+                            <td>
+                                <select class="form-control">
+                                    <option value="0" ${record.attendance_status == 0 ? 'selected' : ''}>Absent</option>
+                                    <option value="1" ${record.attendance_status == 1 ? 'selected' : ''}>Present</option>
+                                    <option value="2" ${record.attendance_status == 2 ? 'selected' : ''}>Izin</option>
+                                    <option value="3" ${record.attendance_status == 3 ? 'selected' : ''}>Sakit</option>
+                                    <option value="4" ${record.attendance_status == 4 ? 'selected' : ''}>Alfa</option>
+                                    <option value="5" ${record.check_type == 5 ? 'selected' : ''}>Belum Checkout</option>
+                                    <option value="6" ${record.check_type == 6 ? 'selected' : ''}>Belum Checkin</option>
+                                </select>
+                            </td>
+                            <td>${record.is_late == 1 ? 'Late' : 'On Time'}</td>
+                            <td>
+                                <button onclick="saveRecord(${record.id}, '${record.check_type}')" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Change
+                                </button>
+                                <button onclick="deleteRecord(${record.id})" class="btn btn-danger">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Reinitialize datetime pickers after table update
+                flatpickr('.datetimepicker', {
+                    enableTime: true,
+                    dateFormat: 'Y-m-d H:i',
+                });
+            }
+        })
+        .catch(error => console.error('Error fetching user statistics:', error));
+}
+
         function saveRecord(id, type) {
             const row = event.target.closest('tr');
             const userId = row.querySelector('input').value;
