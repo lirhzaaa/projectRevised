@@ -114,260 +114,282 @@
         <div id="records"></div>
     </div>
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        flatpickr('.datetimepicker', {
-            enableTime: true,
-            dateFormat: 'Y-m-d H:i',
-        });
-        fetchRecords(); // Fetch records when the document is loaded
-    });
-
-    let globalRecordsData = [];
-
-    function getGlobalRecordsData() {
-        return globalRecordsData;
-    }
-
-    function fetchRecords() {
-        let idFilterElement, userIdFilterElement, attendanceStatusFilterElement, nameFilterElement, lateFilterElement;
-        idFilterElement = document.getElementById('idFilter');
-        userIdFilterElement = document.getElementById('userIdFilter');
-        attendanceStatusFilterElement = document.getElementById('attendanceFilter');
-        nameFilterElement = document.getElementById('nameFilter');
-        lateFilterElement = document.getElementById('lateFilter');
-
-        const idFilter = idFilterElement ? idFilterElement.value : '';
-        const userIdFilter = userIdFilterElement ? userIdFilterElement.value : '';
-        const attendanceStatusFilter = attendanceStatusFilterElement ? attendanceStatusFilterElement.value : '';
-        const nameFilter = nameFilterElement ? nameFilterElement.value : '';
-        const lateFilter = lateFilterElement ? lateFilterElement.value : '';
-
-        fetch(`../fetch_records.php?id=${idFilter}&user_id=${userIdFilter}&attendance_status=${attendanceStatusFilter}&name=${nameFilter}&is_late=${lateFilter}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Fetched data:', data);
-                globalRecordsData = data;
-                displayRecords(data);
-            })
-            .catch(error => {
-                console.error('Error fetching or parsing records:', error);
-                document.getElementById('records').innerHTML = '<div class="alert alert-danger">An error occurred while fetching records.</div>';
+        document.addEventListener('DOMContentLoaded', function () {
+            flatpickr('.datetimepicker', {
+                enableTime: true,
+                dateFormat: 'Y-m-d H:i',
             });
-    }
-
-    function displayRecords(data) {
-    const recordsDiv = document.getElementById('records');
-    let table = '';
-
-    // Group data by user_id and datetime, merging duplicates
-    const groupedData = {};
-
-    data.forEach(record => {
-        const user_id = record.user_id;
-        const datetime = record.datetime;
-        const dateOnly = datetime.split(' ')[0];
-        const month = new Date(dateOnly).toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-        const week = `Minggu ${Math.ceil(new Date(dateOnly).getDate() / 7)}`;
-        const day = new Date(dateOnly).toLocaleString('id-ID', { weekday: 'long' });
-        
-        // Create hierarchy: month -> week -> day
-        if (!groupedData[month]) {
-            groupedData[month] = {};
+            fetchRecords(); // Fetch records when the document is loaded
+        });
+    
+        let globalRecordsData = [];
+    
+        function getGlobalRecordsData() {
+            return globalRecordsData;
         }
-        if (!groupedData[month][week]) {
-            groupedData[month][week] = {};
-        }
-        if (!groupedData[month][week][day]) {
-            groupedData[month][week][day] = [];
-        }
-        
-        // Add record to the appropriate group
-        groupedData[month][week][day].push(record);
-    });
-
-    let counter = 1; // Initialize the counter
-
-    // Iterate through the grouped data and build the table rows
-    Object.keys(groupedData).forEach(month => {
-        table += `<tr><td colspan="8" class="text-center bg-info text-white">-- ${month} --</td></tr>`;
-        
-        Object.keys(groupedData[month]).forEach(week => {
-            table += `<tr><td colspan="8" class="text-center bg-secondary text-white">-- ${week} --</td></tr>`;
-            
-            Object.keys(groupedData[month][week]).forEach(day => {
-                table += `<tr><td colspan="8" class="text-center bg-light text-dark">-- ${day} --</td></tr>`;
-                
-                groupedData[month][week][day].forEach(record => {
-                    let no = counter++;
-                    let checkIn = record.check_type === 0 ? record.datetime : '';
-                    let checkOut = record.check_type === 1 ? record.datetime : '';
-                    let attendanceStatus = '';
-
-                    if (checkIn && checkOut) {
-                        attendanceStatus = 'Present';
-                    } else if (checkIn) {
-                        attendanceStatus = 'Belum Checkout';
-                    } else if (checkOut) {
-                        attendanceStatus = 'Belum Checkin';
-                    } else {
-                        attendanceStatus = 'Absent';
+    
+        function fetchRecords() {
+            let idFilterElement, userIdFilterElement, attendanceStatusFilterElement, nameFilterElement, lateFilterElement;
+            idFilterElement = document.getElementById('idFilter');
+            userIdFilterElement = document.getElementById('userIdFilter');
+            attendanceStatusFilterElement = document.getElementById('attendanceFilter');
+            nameFilterElement = document.getElementById('nameFilter');
+            lateFilterElement = document.getElementById('lateFilter');
+    
+            const idFilter = idFilterElement ? idFilterElement.value : '';
+            const userIdFilter = userIdFilterElement ? userIdFilterElement.value : '';
+            const attendanceStatusFilter = attendanceStatusFilterElement ? attendanceStatusFilterElement.value : '';
+            const nameFilter = nameFilterElement ? nameFilterElement.value : '';
+            const lateFilter = lateFilterElement ? lateFilterElement.value : '';
+    
+            fetch(`../fetch_records.php?id=${idFilter}&user_id=${userIdFilter}&attendance_status=${attendanceStatusFilter}&name=${nameFilter}&is_late=${lateFilter}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
-
-                    let isLateIn = checkIn ? isLate(new Date(checkIn)) : '-';
-
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fetched data:', data);
+                    globalRecordsData = data;
+                    displayRecords(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching or parsing records:', error);
+                    document.getElementById('records').innerHTML = '<div class="alert alert-danger">An error occurred while fetching records.</div>';
+                });
+        }
+    
+        function displayRecords(data) {
+            const recordsDiv = document.getElementById('records');
+            let table = '';
+    
+            // Group data by user_id and datetime, merging duplicates
+            const groupedData = {};
+            let counter = 1; // Initialize the counter
+    
+            data.forEach(record => {
+                const user_id = record.user_id;
+                const datetime = record.datetime;
+                const key = `${user_id}_${datetime}`;
+    
+                if (!groupedData[key]) {
+                    groupedData[key] = {
+                        id: record.id,
+                        user_id: record.user_id,
+                        full_name: record.full_name,
+                        check_in: null,
+                        check_out: null,
+                        attendance_status: null,
+                        is_late_in: null
+                    };
+                }
+    
+                if (record.check_type == 0) { // Check In
+                    groupedData[key].check_in = record.datetime;
+                    groupedData[key].is_late_in = isLate(new Date(record.datetime));
+                } else if (record.check_type == 1) { // Check Out
+                    // Check if check-in already exists with the same datetime
+                    if (groupedData[key].check_in === record.datetime) {
+                        groupedData[key].check_in = null; // Remove check-in if times are the same
+                    } else {
+                        groupedData[key].check_out = record.datetime;
+                    }
+                }
+            });
+    
+            // Merge records with the same timestamp into check-in or check-out
+            const mergedData = {};
+            Object.values(groupedData).forEach(record => {
+                const userKey = record.user_id;
+                const dateOnly = record.check_in ? record.check_in.split(' ')[0] : (record.check_out ? record.check_out.split(' ')[0] : '');
+    
+                if (!mergedData[userKey]) {
+                    mergedData[userKey] = {};
+                }
+    
+                if (dateOnly) {
+                    if (!mergedData[userKey][dateOnly]) {
+                        mergedData[userKey][dateOnly] = { ...record };
+                    } else {
+                        // Merge records with the same timestamp
+                        if (record.check_in && !mergedData[userKey][dateOnly].check_in) {
+                            mergedData[userKey][dateOnly].check_in = record.check_in;
+                            mergedData[userKey][dateOnly].is_late_in = record.is_late_in;
+                        }
+                        if (record.check_out && !mergedData[userKey][dateOnly].check_out) {
+                            mergedData[userKey][dateOnly].check_out = record.check_out;
+                        }
+                    }
+                }
+            });
+    
+            // Flatten mergedData for table display
+            Object.keys(mergedData).forEach(user_id => {
+                Object.keys(mergedData[user_id]).forEach(dateOnly => {
+                    const record = mergedData[user_id][dateOnly];
+                    let no = counter;
+                    counter++;
+    
+                    if (record.check_in && record.check_out) {
+                        record.attendance_status = 'Present';
+                    } else if (record.check_in) {
+                        record.attendance_status = 'Belum Checkout';
+                    } else if (record.check_out) {
+                        record.attendance_status = 'Belum Checkin';
+                    } else {
+                        record.attendance_status = 'Absent';
+                    }
+    
+                    let isLateIn = record.check_in ? record.is_late_in : '-';
+    
                     table += `<tr>
                         <td>${no}</td>
                         <td><input type="text" value="${record.user_id}" id="user_id_${record.id}" class="form-control"></td>
                         <td>${record.full_name}</td>
-                        <td><input type="datetime-local" value="${checkIn ? checkIn.replace(' ', 'T') : ''}" id="datetime_${record.id}_in" class="form-control datetimepicker"></td>
-                        <td><input type="datetime-local" value="${checkOut ? checkOut.replace(' ', 'T') : ''}" id="datetime_${record.id}_out" class="form-control datetimepicker"></td>
+                        <td><input type="datetime-local" value="${record.check_in ? record.check_in.replace(' ', 'T') : ''}" id="datetime_${record.id}_in" class="form-control datetimepicker"></td>
+                        <td><input type="datetime-local" value="${record.check_out ? record.check_out.replace(' ', 'T') : ''}" id="datetime_${record.id}_out" class="form-control datetimepicker"></td>
                         <td>
                             <select id="attendance_status_${record.id}" class="form-control">
-                                <option value="0" ${attendanceStatus === 'Absent' ? 'selected' : ''}>Absent</option>
-                                <option value="1" ${attendanceStatus === 'Present' ? 'selected' : ''}>Present</option>
-                                <option value="2" ${attendanceStatus === 'Izin' ? 'selected' : ''}>Izin</option>
-                                <option value="3" ${attendanceStatus === 'Sakit' ? 'selected' : ''}>Sakit</option>
-                                <option value="4" ${attendanceStatus === 'Alfa' ? 'selected' : ''}>Alfa</option>
-                                <option value="5" ${attendanceStatus === 'Belum Checkout' ? 'selected' : ''}>Belum Checkout</option>
-                                <option value="6" ${attendanceStatus === 'Belum Checkin' ? 'selected' : ''}>Belum Checkin</option>
+                                <option value="0" ${record.attendance_status === 'Absent' ? 'selected' : ''}>Absent</option>
+                                <option value="1" ${record.attendance_status === 'Present' ? 'selected' : ''}>Present</option>
+                                <option value="2" ${record.attendance_status === 'Izin' ? 'selected' : ''}>Izin</option>
+                                <option value="3" ${record.attendance_status === 'Sakit' ? 'selected' : ''}>Sakit</option>
+                                <option value="4" ${record.attendance_status === 'Alfa' ? 'selected' : ''}>Alfa</option>
+                                <option value="5" ${record.attendance_status === 'Belum Checkout' ? 'selected' : ''}>Belum Checkout</option>
+                                <option value="6" ${record.attendance_status === 'Belum Checkin' ? 'selected' : ''}>Belum Checkin</option>
                             </select>
                         </td>
                         <td>${isLateIn}</td>
                         <td>
                             <button onclick="saveRecord(${record.id})" class="btn btn-primary">
-                                <i class="fas fa-pen"></i> Save
+                                <i class="fas fa-pen"></i> Save Change
                             </button>
                         </td>
                     </tr>`;
                 });
             });
-        });
-    });
-
-    if (counter === 1) {
-        table += '<tr><td colspan="8" class="text-center">No records found.</td></tr>';
-    }
-
-    table = `<table class="table table-bordered"><tr><th>No</th><th>User ID</th><th>Full Name</th><th>Check In</th><th>Check Out</th><th>Attendance Status</th><th>Late Status (In)</th><th>Actions</th></tr>${table}</table>`;
-    recordsDiv.innerHTML = table;
-
-    flatpickr('.datetimepicker', {
-        enableTime: true,
-        dateFormat: 'Y-m-d H:i',
-    });
-}
-
     
-    function isLate(datetime) {
-        const checkInThresholdHour = 9;
-        const checkInThresholdMinute = 30;
-
-        const date = new Date(datetime);
-        const thresholdTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), checkInThresholdHour, checkInThresholdMinute);
-
-        return date > thresholdTime ? 'Late' : 'On Time';
-    }
-    
-        function saveRecord(id) {
-            const userId = document.getElementById(`user_id_${id}`).value;
-            const datetimeIn = document.getElementById(`datetime_${id}_in`).value.replace('T', ' ');
-            const datetimeOut = document.getElementById(`datetime_${id}_out`).value.replace('T', ' ');
-            const attendanceStatus = document.getElementById(`attendance_status_${id}`).value;
-    
-            console.log(`Saving record with ID: ${id}, DateTime In: ${datetimeIn}, DateTime Out: ${datetimeOut}, Attendance Status: ${attendanceStatus}`);
-    
-            if (!userId || !attendanceStatus) {
-                alert('User ID and attendance status must be filled.');
-                return;
+            if (Object.keys(mergedData).length === 0) {
+                table += '<tr><td colspan="8" class="text-center">No records found.</td></tr>';
             }
     
-            let formData = new FormData();
-            formData.append('id', id);
-            formData.append('user_id', userId);
-            formData.append('attendance_status', attendanceStatus);
-            formData.append('action', 'edit'); // Add action parameter
+            table = `<table class="table table-bordered"><tr><th>No</th><th>User ID</th><th>Full Name</th><th>Check In</th><th>Check Out</th><th>Attendance Status</th><th>Late Status (In)</th><th>Actions</th></tr>${table}</table>`;
+            recordsDiv.innerHTML = table;
     
-            let checkType = null;
-            if (datetimeIn && !datetimeOut) {
-                checkType = 0; // Check In
-                formData.append('datetime', datetimeIn);
-            } else if (datetimeOut && !datetimeIn) {
-                checkType = 1; // Check Out
-                formData.append('datetime', datetimeOut);
-            } else if (datetimeIn && datetimeOut) {
-                // Handle both datetimeIn and datetimeOut (e.g., update check-in and check-out separately)
-                checkType = 0; // Assuming you want to handle Check In first
-                formData.append('datetime', datetimeIn);
-                // Send additional request or handle according to your logic
-            } else {
-                alert('Either Check In or Check Out datetime must be provided.');
-                return;
-            }
-    
-            formData.append('check_type', checkType);
-    
-            fetch('../manage_record.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Server response:', data);
-                if (data.status === 'success') {
-                    alert('Record updated successfully');
-                    fetchRecords(); // Refresh records after saving
-                } else {
-                    alert('Failed to update record. Server response: ' + data.message); 
-                }
-            })
-            .catch(error => {
-                console.error('Error saving record:', error);
-                alert('An error occurred while saving the record. Please try again later.'); 
+            flatpickr('.datetimepicker', {
+                enableTime: true,
+                dateFormat: 'Y-m-d H:i',
             });
         }
     
-        function deleteRecords(type) {
-            if (!confirm('Are you sure you want to delete all records?')) {
-                return; // Exit if user cancels the action
-            }
+        function isLate(datetime) {
+            const checkInThresholdHour = 9;
+            const checkInThresholdMinute = 30;
     
-            let formData = new FormData();
-            formData.append('action', 'delete_all');
-            formData.append('type', type);
+            const date = new Date(datetime);
+            const thresholdTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), checkInThresholdHour, checkInThresholdMinute);
     
-            fetch('../manage_attendance.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(text => {
-                try {
-                    const data = JSON.parse(text);
-                    if (data.status === 'success') {
-                        alert('All records deleted successfully.');
-                        fetchRecords(); // Refresh records after deletion
-                    } else {
-                        alert('Delete failed: ' + data.message);
-                    }
-                } catch (error) {
-                    console.error('Error parsing JSON:', error);
-                    console.error('Response text:', text); // Log the raw response
-                }
-            })
-            .catch(error => console.error('Error:', error));
+            return date > thresholdTime ? 'Late' : 'On Time';
         }
-    </script>
+        
+            function saveRecord(id) {
+                const userId = document.getElementById(`user_id_${id}`).value;
+                const datetimeIn = document.getElementById(`datetime_${id}_in`).value.replace('T', ' ');
+                const datetimeOut = document.getElementById(`datetime_${id}_out`).value.replace('T', ' ');
+                const attendanceStatus = document.getElementById(`attendance_status_${id}`).value;
+        
+                console.log(`Saving record with ID: ${id}, DateTime In: ${datetimeIn}, DateTime Out: ${datetimeOut}, Attendance Status: ${attendanceStatus}`);
+        
+                if (!userId || !attendanceStatus) {
+                    alert('User ID and attendance status must be filled.');
+                    return;
+                }
+        
+                let formData = new FormData();
+                formData.append('id', id);
+                formData.append('user_id', userId);
+                formData.append('attendance_status', attendanceStatus);
+                formData.append('action', 'edit'); // Add action parameter
+        
+                let checkType = null;
+                if (datetimeIn && !datetimeOut) {
+                    checkType = 0; // Check In
+                    formData.append('datetime', datetimeIn);
+                } else if (datetimeOut && !datetimeIn) {
+                    checkType = 1; // Check Out
+                    formData.append('datetime', datetimeOut);
+                } else if (datetimeIn && datetimeOut) {
+                    // Handle both datetimeIn and datetimeOut (e.g., update check-in and check-out separately)
+                    checkType = 0; // Assuming you want to handle Check In first
+                    formData.append('datetime', datetimeIn);
+                    // Send additional request or handle according to your logic
+                } else {
+                    alert('Either Check In or Check Out datetime must be provided.');
+                    return;
+                }
+        
+                formData.append('check_type', checkType);
+        
+                fetch('../manage_record.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Server response:', data);
+                    if (data.status === 'success') {
+                        alert('Record updated successfully');
+                        fetchRecords(); // Refresh records after saving
+                    } else {
+                        alert('Failed to update record. Server response: ' + data.message); 
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving record:', error);
+                    alert('An error occurred while saving the record. Please try again later.'); 
+                });
+            }
+        
+            
+            function deleteRecords(type) {
+                if (!confirm('Are you sure you want to delete all records?')) {
+                    return; // Exit if user cancels the action
+                }
+        
+                let formData = new FormData();
+                formData.append('action', 'delete_all');
+                formData.append('type', type);
+        
+                fetch('../manage_attendance.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.status === 'success') {
+                            alert('All records deleted successfully.');
+                            fetchRecords(); // Refresh records after deletion
+                        } else {
+                            alert('Delete failed: ' + data.message);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing JSON:', error);
+                        console.error('Response text:', text); // Log the raw response
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        </script>
+    
     
 
 </body>
