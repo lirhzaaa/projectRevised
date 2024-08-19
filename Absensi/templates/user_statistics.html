@@ -316,34 +316,54 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
 
-                document.getElementById('attendance-table-body').innerHTML = data.attendance.map((record, index) => {
-                    const datetimeIn = record.check_in_time ? moment(record.check_in_time).format('YYYY-MM-DDTHH:mm') : '';
-                    const datetimeOut = record.check_out_time ? moment(record.check_out_time).format('YYYY-MM-DDTHH:mm') : '';
-                    
+                // Group attendance records by date
+                const groupedAttendance = data.attendance.reduce((acc, record) => {
+                    const date = moment(record.datetime).format('YYYY-MM-DD'); // Extract date only
+                    if (!acc[date]) {
+                        acc[date] = { check_in: null, check_out: null };
+                    }
+
+                    if (record.check_type == 0) {
+                        acc[date].check_in = record;
+                    } else if (record.check_type == 1) {
+                        acc[date].check_out = record;
+                    }
+
+                    return acc;
+                }, {});
+                // Generate table rows based on grouped data
+                document.getElementById('attendance-table-body').innerHTML = Object.keys(groupedAttendance).map((date, index) => {
+                    const record = groupedAttendance[date];
+                    const datetimeIn = record.check_in ? moment(record.check_in.datetime).format('YYYY-MM-DDTHH:mm') : '';
+                    const datetimeOut = record.check_out ? moment(record.check_out.datetime).format('YYYY-MM-DDTHH:mm') : '';
+
                     return `
                         <tr>
                             <td>${index + 1}</td>
-                            <td><input type="text" value="${userId}" class="form-control" readonly></td>
+                            <td><input type="text" value="${data.user.user_id}" class="form-control" readonly></td>
                             <td>${data.user.full_name}</td>
                             <td><input type="datetime-local" value="${datetimeIn}" class="form-control datetimepicker"></td>
                             <td><input type="datetime-local" value="${datetimeOut}" class="form-control datetimepicker"></td>
                             <td>
                                 <select class="form-control">
-                                    <option value="0" ${record.attendance_status == 0 ? 'selected' : ''}>Absent</option>
-                                    <option value="1" ${record.attendance_status == 1 ? 'selected' : ''}>Present</option>
-                                    <option value="2" ${record.attendance_status == 2 ? 'selected' : ''}>Izin</option>
-                                    <option value="3" ${record.attendance_status == 3 ? 'selected' : ''}>Sakit</option>
-                                    <option value="4" ${record.attendance_status == 4 ? 'selected' : ''}>Alfa</option>
-                                    <option value="5" ${record.check_type == 5 ? 'selected' : ''}>Belum Checkout</option>
-                                    <option value="6" ${record.check_type == 6 ? 'selected' : ''}>Belum Checkin</option>
+                                    <option value="0" ${record.check_in?.attendance_status == 0 ? 'selected' : ''}>Absent</option>
+                                    <option value="1" ${record.check_in?.attendance_status == 1 ? 'selected' : ''}>Present</option>
+                                    <option value="2" ${record.check_in?.attendance_status == 2 ? 'selected' : ''}>Izin</option>
+                                    <option value="3" ${record.check_in?.attendance_status == 3 ? 'selected' : ''}>Sakit</option>
+                                    <option value="4" ${record.check_in?.attendance_status == 4 ? 'selected' : ''}>Alfa</option>
+                                    <option value="5" ${record.check_in?.attendance_status == 5 ? 'selected' : ''}>Belum Checkout</option>
+                                    <option value="6" ${record.check_in?.attendance_status == 6 ? 'selected' : ''}>Belum Checkin</option>
                                 </select>
                             </td>
-                            <td>${record.is_late == 1 ? 'Late' : 'On Time'}</td>
+                            <td>${record.check_in?.is_late == 1 || record.check_out?.is_late == 1 ? 'Late' : 'On Time'}</td>
                             <td>
-                                <button onclick="saveRecord(${record.id}, '${record.check_type}')" class="btn btn-primary">
-                                    <i class="fas fa-save"></i> Save Change
+                                <button onclick="saveRecord(${record.check_in?.id}, ${record.check_in?.check_type})" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Change Check In
                                 </button>
-                                <button onclick="deleteRecord(${record.id})" class="btn btn-danger">
+                                <button onclick="saveRecord(${record.check_out?.id}, ${record.check_out?.check_type})" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Change Check Out
+                                </button>
+                                <button onclick="deleteRecord(${record.check_in?.id || record.check_out?.id})" class="btn btn-danger">
                                     <i class="fas fa-trash-alt"></i> Delete
                                 </button>
                             </td>
@@ -366,18 +386,21 @@ document.addEventListener('DOMContentLoaded', function () {
             const userId = row.querySelector('input').value;
             const datetime = row.querySelectorAll('input')[1].value;
             const attendance = row.querySelector('select').value;
-    
-            const checkType = type === 'in' ? 'Check In' : 'Check Out';
-    
+
+            // Mengatur check_type sebagai integer (0 atau 1) sesuai dengan PHP
+            const checkType = type == 0 ? 0 : 1;
+
             const data = {
                 id: id,
                 user_id: userId,
                 datetime: datetime,
-                attendance: attendance,
-                check_type: checkType
+                attendance_status: attendance,
+                check_type: checkType,
+                action: 'edit'
             };
-    
-            fetch('../save_record.php', {
+            console.log(data)
+
+            fetch('../manage_record.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -386,34 +409,39 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .then(response => response.json())
             .then(result => {
-                if (result.success) {
+                if (result.status === 'success') {
                     alert('Record saved successfully.');
                 } else {
-                    alert('Failed to save record.');
+                    alert('Failed to save record: ' + (result.message || 'Unknown error'));
                 }
             })
             .catch(error => console.error('Error saving record:', error));
         }
+
     
         function deleteRecord(id) {
+            console.log(id)
             if (confirm('Are you sure you want to delete this record?')) {
-                fetch('../delete_record.php', {
+                fetch('../manage_record.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ id: id })
+                    body: JSON.stringify({ id: id, action: 'delete' })
                 })
                 .then(response => response.json())
                 .then(result => {
-                    if (result.success) {
+                    if (result.status === 'success') {
                         alert('Record deleted successfully.');
                         fetchUserStatistics(); // Refresh the statistics after deletion
                     } else {
-                        alert('Failed to delete record.');
+                        alert('Failed to delete record: ' + result.message);
                     }
                 })
-                .catch(error => console.error('Error deleting record:', error));
+                .catch(error => {
+                    console.error('Error deleting record:', error);
+                    alert('Error deleting record. Please check the console for details.');
+                });
             }
         }
     </script>
