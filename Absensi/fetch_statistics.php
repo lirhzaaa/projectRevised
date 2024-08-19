@@ -20,44 +20,55 @@ if ($user_id !== null) {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
-        $stmt = $pdo->prepare('
-        SELECT 
-            a1.user_id,
-            u.full_name,
-            a1.datetime as check_in_time,
-            a2.datetime as check_out_time,
-            a1.attendance_status as check_in_status,
-            a2.attendance_status as check_out_status,
-            CASE 
-                WHEN TIME(a1.datetime) > "09:45:00" THEN 1 
-                ELSE 0 
-            END AS late_check_in,
-            CASE 
-                WHEN TIME(a2.datetime) > "17:00:00" THEN 1 
-                ELSE 0 
-            END AS late_check_out
-        FROM attendance_records a1
-        LEFT JOIN attendance_records a2 
-            ON a1.user_id = a2.user_id 
-            AND a2.check_type = "Check Out"
-        INNER JOIN users u 
-            ON a1.user_id = u.user_id
-        WHERE a1.user_id = :user_id 
-        AND a1.check_type = "Check In"
-    ');
-    $stmt->bindParam(':user_id', $user_id);
-    if (!$stmt->execute()) {
-        die(json_encode(['status' => 'error', 'message' => 'Error fetching attendance records']));
-    }
-    $attendance_status = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+        $query = "SELECT ar.* FROM attendance_records ar WHERE user_id = $user_id";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute(); // Execute the prepared statement
+
+        $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         header('Content-Type: application/json');
-        echo json_encode(['status' => 'success', 'user' => $user, 'attendance' => $attendance_status]); 
+        echo json_encode(['status' => 'success', 'user' => $user, 'attendance' => $records]);
+    //     $stmt = $pdo->prepare('
+    //     SELECT 
+    //         a1.user_id,
+    //         u.full_name,
+    //         a1.datetime as check_in_time,
+    //         a2.datetime as check_out_time,
+    //         a1.attendance_status as check_in_status,
+    //         a2.attendance_status as check_out_status,
+    //         CASE 
+    //             WHEN TIME(a1.datetime) > "09:45:00" THEN 1 
+    //             ELSE 0 
+    //         END AS late_check_in,
+    //         CASE 
+    //             WHEN TIME(a2.datetime) > "17:00:00" THEN 1 
+    //             ELSE 0 
+    //         END AS late_check_out
+    //     FROM attendance_records a1
+    //     LEFT JOIN attendance_records a2 
+    //         ON a1.user_id = a2.user_id 
+    //         AND a2.check_type = "Check Out"
+    //     INNER JOIN users u 
+    //         ON a1.user_id = u.user_id
+    //     WHERE a1.user_id = :user_id 
+    //     AND a1.check_type = "Check In"
+    // ');
+    // $stmt = $pdo->prepare(``);
+
+    // $stmt->bindParam(':user_id', $user_id);
+    // if (!$stmt->execute()) {
+    //     die(json_encode(['status' => 'error', 'message' => 'Error fetching attendance records']));
+    // }
+    // $attendance_status = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+
+    //     header('Content-Type: application/json');
+    //     echo json_encode(['status' => 'success', 'user' => $user, 'attendance' => $attendance_status]); 
     } else {
         echo json_encode(['status' => 'error', 'message' => 'User not found']);
     }
-} else {
+}else {
     // Fetch general statistics
     try {
         $totalRecordsStmt = $pdo->query('SELECT COUNT(*) FROM attendance_records');

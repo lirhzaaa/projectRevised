@@ -2,7 +2,7 @@
 $host = 'localhost';
 $dbname = 'attendance_db'; // Replace with your actual database name
 $username = 'root'; 
-$password = '';  
+$password = 'root';  
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);

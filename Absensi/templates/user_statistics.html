@@ -78,8 +78,8 @@
             </div>
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Dispen</h5>
-                    <p class="card-text" id="dispen"></p>
+                    <h5 class="card-title">Izin</h5>
+                    <p class="card-text" id="izin"></p>
                 </div>
             </div>
             <div class="card">
@@ -205,17 +205,26 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         document.getElementById('user-name').textContent = `${data.user.full_name}'s User Statistics`;
         
-    
                         const attendance = data.attendance;
                         document.getElementById('totalRecords').textContent = attendance.length;
-                        const presentCount = attendance.filter(record => record.attendance_status === 'Present').length;
-                        const absentCount = attendance.filter(record => record.attendance_status === 'Absent').length;
+                        const absentCount = attendance.filter(record => record.attendance_status === 0).length;
+                        const presentCount = attendance.filter(record => record.attendance_status === 1).length;
+                        const izinCount = attendance.filter(record => record.attendance_status === 2).length;
+                        const sakitCount = attendance.filter(record => record.attendance_status === 3).length;
+                        const alfaCount = attendance.filter(record => record.attendance_status === 4).length;
+                        const belumCheckoutCount = attendance.filter(record => record.check_type === 5).length;
+                        const belumCheckinCount = attendance.filter(record => record.check_type === 6).length;
                         const lateCount = attendance.filter(record => record.late === 1).length;
                         const onTimeCount = attendance.length - lateCount;
                         document.getElementById('present').textContent = presentCount;
                         document.getElementById('absent').textContent = absentCount;
                         document.getElementById('late').textContent = lateCount;
                         document.getElementById('onTime').textContent = onTimeCount;
+                        document.getElementById('izin').textContent = izinCount;
+                        document.getElementById('sakit').textContent = sakitCount;
+                        document.getElementById('alfa').textContent = alfaCount;
+                        document.getElementById('belumCheckout').textContent = belumCheckoutCount;
+                        document.getElementById('belumCheckin').textContent = belumCheckinCount;
     
                         // Late statistics
                         const lateStatistics = `
@@ -312,39 +321,39 @@ document.addEventListener('DOMContentLoaded', function () {
                         });
     
                         document.getElementById('attendance-table-body').innerHTML = data.attendance.map((record, index) => {
-    const datetimeIn = record.check_in_time ? moment(record.check_in_time).format('YYYY-MM-DDTHH:mm') : '';
-    const datetimeOut = record.check_out_time ? moment(record.check_out_time).format('YYYY-MM-DDTHH:mm') : '';
-    
-    return `
-        <tr>
-            <td>${index + 1}</td>
-            <td><input type="text" value="${userId}" class="form-control" readonly></td>
-            <td>${data.user.full_name}</td>
-            <td><input type="datetime-local" value="${datetimeIn}" class="form-control datetimepicker"></td>
-            <td><input type="datetime-local" value="${datetimeOut}" class="form-control datetimepicker"></td>
-            <td>
-                <select class="form-control">
-                    <option value="0" ${record.check_in_status == 0 ? 'selected' : ''}>Absent</option>
-                    <option value="1" ${record.check_in_status == 1 ? 'selected' : ''}>Present</option>
-                    <option value="2" ${record.check_in_status == 2 ? 'selected' : ''}>Izin</option>
-                    <option value="3" ${record.check_in_status == 3 ? 'selected' : ''}>Sakit</option>
-                    <option value="4" ${record.check_in_status == 4 ? 'selected' : ''}>Alfa</option>
-                    <option value="5" ${record.check_in_status == 5 ? 'selected' : ''}>Belum Checkout</option>
-                    <option value="6" ${record.check_in_status == 6 ? 'selected' : ''}>Belum Checkin</option>
-                </select>
-            </td>
-            <td>${record.late_check_in == 1 ? 'Late' : 'On Time'}</td>
-            <td>
-                <button onclick="saveRecord(${record.id}, '${record.check_type}')" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Save Change
-                </button>
-                <button onclick="deleteRecord(${record.id})" class="btn btn-danger">
-                    <i class="fas fa-trash-alt"></i> Delete
-                </button>
-            </td>
-        </tr>
-    `;
-}).join('');
+                        const datetimeIn = record.check_in_time ? moment(record.check_in_time).format('YYYY-MM-DDTHH:mm') : '';
+                        const datetimeOut = record.check_out_time ? moment(record.check_out_time).format('YYYY-MM-DDTHH:mm') : '';
+                        
+                        return `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td><input type="text" value="${userId}" class="form-control" readonly></td>
+                                <td>${data.user.full_name}</td>
+                                <td><input type="datetime-local" value="${datetimeIn}" class="form-control datetimepicker"></td>
+                                <td><input type="datetime-local" value="${datetimeOut}" class="form-control datetimepicker"></td>
+                                <td>
+                                    <select class="form-control">
+                                        <option value="0" ${record.check_in_status == 0 ? 'selected' : ''}>Absent</option>
+                                        <option value="1" ${record.check_in_status == 1 ? 'selected' : ''}>Present</option>
+                                        <option value="2" ${record.check_in_status == 2 ? 'selected' : ''}>Izin</option>
+                                        <option value="3" ${record.check_in_status == 3 ? 'selected' : ''}>Sakit</option>
+                                        <option value="4" ${record.check_in_status == 4 ? 'selected' : ''}>Alfa</option>
+                                        <option value="5" ${record.check_in_status == 5 ? 'selected' : ''}>Belum Checkout</option>
+                                        <option value="6" ${record.check_in_status == 6 ? 'selected' : ''}>Belum Checkin</option>
+                                    </select>
+                                </td>
+                                <td>${record.late_check_in == 1 ? 'Late' : 'On Time'}</td>
+                                <td>
+                                    <button onclick="saveRecord(${record.id}, '${record.check_type}')" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Save Change
+                                    </button>
+                                    <button onclick="deleteRecord(${record.id})" class="btn btn-danger">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
 
 
                         // Reinitialize datetime pickers after table update
